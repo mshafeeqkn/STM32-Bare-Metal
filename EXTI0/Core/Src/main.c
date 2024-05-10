@@ -88,9 +88,9 @@ int main(void)
     // Enable clock for GPIOB, GPIOC and AFIO peripheral
     RCC->APB2ENR |= (RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPBEN | RCC_APB2ENR_AFIOEN);
 
-    // Configure GPIO pin as output
-    GPIOC->CRH &= ~(GPIO_CRH_CNF13 | GPIO_CRH_MODE13);  // Clear configuration
-    GPIOC->CRH |= GPIO_CRH_MODE13_0;  // Set pin mode to general purpose output (max speed 10 MHz)
+    // Configure PC13 pin as output push-pull maximum speed 10MHz
+    GPIOC->CRH &= ~(GPIO_CRH_CNF13 | GPIO_CRH_MODE13);
+    GPIOC->CRH |= GPIO_CRH_MODE13_0;
 
     setup_exti0_interrupt();
 
