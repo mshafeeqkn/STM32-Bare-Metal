@@ -22,7 +22,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "uart.h"
 
 #define TURN_ON_LED()            turn_led_on(TURN_ON)
 #define TURN_OFF_LED()           turn_led_on(TURN_OFF)
@@ -116,10 +115,6 @@ static void dma_setup() {
   */
 int main(void)
 {
-    uart1_setup(UART_TX_ENABLE);
-
-    uart1_send_string("ADC1 DMA\r\n");
-
     // Enable clock for GPIOC
     RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;     // Built-in LED
 
@@ -137,7 +132,6 @@ int main(void)
     TOGGLE_LED();
 
     while (1) {
-        // uart1_send_string("ADC1 value = %d;%d;%d\r\n", adc_data_buff[0], adc_data_buff[1], adc_data_buff[2]);
         for(uint8_t i = 0; i < 3; i++) {
             TOGGLE_LED();
             delay(adc_data_buff[i]);
