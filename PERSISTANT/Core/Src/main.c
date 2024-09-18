@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "flash_ops.h"
+#include "uart.h"
 
 // Macro defines
 #define TURN_ON_LED()            turn_led_on(TURN_ON)
@@ -71,6 +73,12 @@ void config_sys_clock() {
   */
 int main(void) {
     config_sys_clock();
+    flash_data_t out = {0};
+    flash_data_t data = {
+        .alarm_time = 0x1111,
+        .run_time = 0x12345678,
+        .sample = 0x12124567,
+    };
 
     // Enable clock for GPIOC peripheral
     RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
@@ -78,8 +86,17 @@ int main(void) {
     // Configure GPIO pin as output
     GPIOC->CRH &= ~(GPIO_CRH_CNF13 | GPIO_CRH_MODE13);  // Clear configuration
     GPIOC->CRH |= GPIO_CRH_MODE13_0;  // Set pin mode to general purpose output (max speed 10 MHz)
+    TURN_OFF_LED();
+
+    // flash_write_struct(PERS_BASE_ADDRESS, &data);
+
+    uart1_setup(UART_TX_ENABLE);
+    flash_read_struct(PERS_BASE_ADDRESS, &out);
+    uart1_send_string("Read data: 0x%x; 0x%x; 0x%x\r\n",
+        out.alarm_time, out.run_time, out.sample);
 
     while(1) {
         TOGGLE_LED();
+        for(int i = 0; i < out.sample; i++);
     }
 }
