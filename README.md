@@ -17,6 +17,7 @@ Here is the associated blog posts
 - UART - [STM32F103C6T6A Bare Metal Programming – UART](https://blog.mshafeeq.com/index.php/2023/11/13/stm32f103c6t6a-bare-metal-programming-uart/)
 - I2C
   - I2C_MASTER
-    - I2C_MASTER_WRITE - [STM32F103C6T6A Bare Metal Programming – I2C (Part 1)](https://blog.mshafeeq.com/index.php/2024/04/08/stm32f103c6t6a-bare-metal-programming-i2c-part-1/)
-    - I2C_MASTER_READ - [STM32F103C6T6A Bare Metal Programming – I2C (Part 2)](https://blog.mshafeeq.com/index.php/2024/10/01/stm32f103c6t6a-bare-metal-programming-i2c-part-2/)
+    - I2C_MASTER_WRITE - [STM32F103C6T6A Bare Metal Programming – I2C Master write](https://blog.mshafeeq.com/index.php/2024/04/08/stm32f103c6t6a-bare-metal-programming-i2c-part-1/)
+    - I2C_MASTER_READ - [STM32F103C6T6A Bare Metal Programming – I2C Master read](https://blog.mshafeeq.com/index.php/2024/10/01/stm32f103c6t6a-bare-metal-programming-i2c-part-2/)
+  - I2C_SLAVE - [STM32F103C6T6A Bare Metal Programming – I2C Slave Read and Write](https://blog.mshafeeq.com/index.php/2024/07/10/stm32f103c6t6a-bare-metal-programming-i2c-slave-read-write/)
 - PERSISTANT
