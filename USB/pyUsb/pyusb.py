@@ -33,11 +33,11 @@ TIMEOUT = 1000  # Timeout in milliseconds
 while True:
     # Wait for user input
     try:
-        user_input = inputimeout(prompt="Enter something: ", timeout=1)
+        user_input = inputimeout(prompt="Enter something: ", timeout=0.5)
         dev.write(WR_ENDPOINT, user_input[:2], TIMEOUT)
-        print(f"You entered: {user_input[:2]}")
+        print(f"\rYou entered: {user_input[:2]}", end="")
     except TimeoutOccurred:
-        print("Timed out!")
+        pass
 
     try:
         # Read data from the endpoint

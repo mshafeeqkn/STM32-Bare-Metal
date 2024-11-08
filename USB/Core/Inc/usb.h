@@ -72,10 +72,6 @@ extern "C" {
 #define  USB_DESC_TYPE_DEVICE_QUALIFIER                 0x06U
 
 #define  USBD_LANGID_STR                                0x00U
-#define  USBD_MFC_STR                                   0x01U
-#define  USBD_PRODUCT_STR                               0x02U
-#define  USBD_SERIAL_STR                                0x03U
-#define  USBD_STRING_DESC_SIZE                          0x100
 
 // Macros related to language descriptors
 #define  USB_LEN_LANGID_STR_DESC                        0x04U
@@ -106,6 +102,10 @@ extern "C" {
 #define  USBD_IDX_PRODUCT_STR                           0x02U
 #define  USBD_IDX_SERIAL_STR                            0x03U
 #define  USBD_MAX_NUM_CONFIGURATION                     1
+#define  USBD_STRING_DESC_SIZE                          0x100
+
+#define  QUAL_DESC_SIZE                                 0x0A
+#define  USB_DESC_TYPE_DEV_QUALIFIER                    0x06
 
 // Utility macros
 #define USB_EP_REG(n)               (*(__IO uint16_t *)(&(USB)->EP0R + ((n) * 2U)))

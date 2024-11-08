@@ -24,6 +24,7 @@
 
 #define PMA_BDT_ATTR    __attribute__((section(".pma,\"aw\",%nobits//"), used, aligned(8)))
 
+extern void delay_ms(uint32_t ms);
 extern PMAWord_t _pma_end;
 static uint8_t usb_addr = 0;
 static uint8_t data[2] = {0x7F, 0x7F};
@@ -277,6 +278,19 @@ uint8_t fs_config[41] __attribute__ ((aligned (4))) = {
   /* 41 */
 };
 
+static uint8_t qual_desc[QUAL_DESC_SIZE]  __attribute__ ((aligned (4))) = {
+    QUAL_DESC_SIZE,
+    USB_DESC_TYPE_DEV_QUALIFIER,
+    0x00,
+    0x02,
+    0x00,
+    0x00,
+    0x00,
+    EP0_BUFFER_SIZE,
+    USBD_MAX_NUM_CONFIGURATION,
+    0x00
+};
+
 uint8_t lang_desc[USB_LEN_LANGID_STR_DESC]  __attribute__ ((aligned (4))) = {
      USB_LEN_LANGID_STR_DESC,
      USB_DESC_TYPE_STRING,
@@ -404,21 +418,21 @@ static void process_string_request(usb_ctrl_req_t *req) {
             usb_ctrl_send_data(0, buff, len);
             break;
 
-        case USBD_MFC_STR:
+        case USBD_IDX_MFC_STR:
             // 80 06 01 03 09 04 FF 00
             convert_str_to_desc((uint8_t*)USBD_MANUFACTURER_STRING, str_desc, &len);
             buff = str_desc;
             usb_ctrl_send_data(0, buff, len);
             break;
 
-        case USBD_PRODUCT_STR:
+        case USBD_IDX_PRODUCT_STR:
             // 80 06 02 03 09 04 FF 00
             convert_str_to_desc((uint8_t*)USBD_PRODUCT_STRING_FS, str_desc, &len);
             buff = str_desc;
             usb_ctrl_send_data(0, buff, len);
             break;
 
-        case USBD_SERIAL_STR:
+        case USBD_IDX_SERIAL_STR:
             // 80 06 03 03 09 04 FF 00
             len = USB_SIZ_STRING_SERIAL;
             get_serial_num();
@@ -454,8 +468,9 @@ void process_descriptor_request(usb_ctrl_req_t *req) {
 
         case USB_DESC_TYPE_DEVICE_QUALIFIER:
             // 80 06 00 06 00 00 0A 00
-            SET_EP_TX_STATUS(0, USB_EP_TX_STALL);
-            SET_EP_RX_STATUS(0, USB_EP_RX_STALL);
+            buff = qual_desc;
+            len = sizeof(qual_desc);
+            usb_ctrl_send_data(0, buff, len);
             break;
     }
 
@@ -470,7 +485,7 @@ static void process_std_request(usb_ctrl_req_t *req) {
             break;
 
         case USB_REQ_GET_DESCRIPTOR:
-            // Get descriptor request
+            // 80 06 00 06 00 00 0A 00
             process_descriptor_request(req);
             break;
 
@@ -493,6 +508,7 @@ static void process_setup_messages() {
     // Get a setup packet
     xfer_count = get_rx_count(endpoint);
     read_data_from_pma(buff_desc_table[endpoint].rx_addrs, xfer_data, xfer_count);
+    dump_data("Request", xfer_data, xfer_count);
     CLEAR_RX_EP_CTR(endpoint);
     parse_ctrl_msg(xfer_data, &request);
     switch(request.request_type & 0x1F) {
@@ -651,10 +667,6 @@ void init_usb(void) {
     // USB related interrupts
     USB->ISTR = 0U;
     USB->CNTR = (uint16_t)(USB_CNTR_RESETM);
-}
-void delay_ms(uint32_t ms) {
-    for (uint32_t i = 0; i < ms * 7200; i++)
-        __asm__("nop");  // No operation, just delay
 }
 
 void usb_send_data(void) {
