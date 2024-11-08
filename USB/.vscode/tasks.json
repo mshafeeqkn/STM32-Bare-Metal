@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "STM32 Makefile",
+			"command": "make",
+			"args": [
+				"flash"
+			],
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: /usr/local/bin/arm-none-eabi-gcc"
+		}
+	]
+}
