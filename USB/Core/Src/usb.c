@@ -22,7 +22,7 @@
 #include "string.h"
 #include "stdio.h"
 
-#define PMA_BDT_ATTR    __attribute__((section(".pma,\"aw\",%nobits//"), used, aligned(8)))
+#define PMA_BDT_ATTR    __attribute__((section(".pma,\"aw\",%nobits//"), used))
 
 extern void delay_ms(uint32_t ms);
 extern PMAWord_t _pma_end;
