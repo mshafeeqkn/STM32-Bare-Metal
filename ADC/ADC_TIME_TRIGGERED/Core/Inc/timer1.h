@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * @file           : timer1.h
+  * @brief          : Header for timer1.c file.
+  *                   This file contains the common defines of Timer1 CC1.
   ******************************************************************************
   * @attention
   *
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
+#ifndef __TIMER1_H
+#define __TIMER1_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,11 +36,6 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef enum {
-    TURN_OFF,
-    TURN_ON,
-    TURN_TOGGLE
-} LedState_t;
 
 /* USER CODE END ET */
 
@@ -55,7 +50,7 @@ typedef enum {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+void configure_timer1_cc1();
 
 /* USER CODE BEGIN EFP */
 
@@ -71,4 +66,4 @@ void Error_Handler(void);
 }
 #endif
 
-#endif /* __MAIN_H */
+#endif /* __TIMER1_H */
