@@ -60,15 +60,6 @@ void can_init() {
     // Enable the clock for CAN peripheral
     RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
 
-    // CAN pins are PA11 and PA12, enable GIPOA clock
-    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
-
-    // Configure PA11(CAN RX) as input floating
-    // This is reset state, no need to change register value
-
-    // Configure PA12 (CAN TX) as output alternate function push pull
-    GPIOA->CRH |= GPIO_CRH_CNF12_1 | GPIO_CRH_MODE12_0;
-
     // Enable CAN interrupt
     prio_grp = NVIC_GetPriorityGrouping();
     NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, NVIC_EncodePriority(prio_grp, 0, 0));
