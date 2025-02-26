@@ -224,7 +224,7 @@ int main(void) {
 
     while(1) {
         rms = get_rms_voltage(5);
-        uart1_send_string("%f\r\n", rms);
+        uart1_send_string(">> %d\r\n", (int)rms);
         delay(1000);
     }
 }
