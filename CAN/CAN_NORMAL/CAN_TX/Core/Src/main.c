@@ -97,7 +97,7 @@ void config_debug_led() {
     GPIOC->CRH &= ~(GPIO_CRH_CNF13 | GPIO_CRH_MODE13);  // Clear configuration
     GPIOC->CRH |= GPIO_CRH_MODE13_0;  // Set pin mode to general purpose output (max speed 10 MHz)
 
-    TURN_OFF_LED();
+    // TURN_OFF_LED();
 }
 
 void delay_ms(uint16_t ms) {
