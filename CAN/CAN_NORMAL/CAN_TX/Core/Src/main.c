@@ -77,7 +77,7 @@ void config_sys_clock() {
     // Set the PLL as system clock source
     RCC->CFGR &= ~RCC_CFGR_SW;
     RCC->CFGR |= RCC_CFGR_SW_PLL;
-    while(0 == (RCC->CFGR & RCC_CFGR_SWS_PLL));
+    while(RCC_CFGR_SWS_PLL != (RCC->CFGR & RCC_CFGR_SWS_PLL));
 
     // Configure AHB and APB prescaler
     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;            // AHB prescaler
@@ -108,8 +108,10 @@ void delay_ms(uint16_t ms) {
 }
 
 static void can_init() {
+#if 0
     uint32_t priority_group;
     uint32_t priority_encoded;
+#endif
 
     // Enable clock for CAN and port B
     // We are using alternate pins for CAN since
@@ -130,11 +132,13 @@ static void can_init() {
     // Remap the CAN pins
     AFIO->MAPR |= AFIO_MAPR_CAN_REMAP_REMAP2;
 
+#if 0
     // Enable interrupt for CAN receive
     priority_group = NVIC_GetPriorityGrouping();
     priority_encoded = NVIC_EncodePriority(priority_group, 0, 0);
     NVIC_SetPriority(CAN1_RX1_IRQn, priority_encoded);
     NVIC_EnableIRQ(CAN1_RX1_IRQn);
+#endif
 
     // Request CAN initialization
     CAN1->MCR |= CAN_MCR_INRQ;
@@ -180,8 +184,9 @@ void can_send_byte(uint8_t byte) {
        (0 != (tsr & CAN_TSR_TME2))) {
         tx_mailbox = ((tsr & CAN_TSR_CODE) >> CAN_TSR_CODE_Pos);
         CAN1->sTxMailBox[tx_mailbox].TIR = (0x6A5 << CAN_TI0R_STID_Pos);
-        CAN1->sTxMailBox[tx_mailbox].TDTR = 1;
-        CAN1->sTxMailBox[tx_mailbox].TDLR = byte;
+        CAN1->sTxMailBox[tx_mailbox].TDTR = 8;
+        CAN1->sTxMailBox[tx_mailbox].TDHR = byte | byte << 8 | byte << 16 | byte << 24;
+        CAN1->sTxMailBox[tx_mailbox].TDLR = byte | byte << 8 | byte << 16 | byte << 24;
         CAN1->sTxMailBox[tx_mailbox].TIR |= CAN_TI0R_TXRQ;
     }
 }
