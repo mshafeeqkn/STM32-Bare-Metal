@@ -112,7 +112,7 @@ static void can_init() {
     // the default pin may interfer with the USB
     RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
     RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
-
+    RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
     // PB8 - CAN RX and PB9 - CAN TX
     // Remap CAN pins
     // CAN RX should be configured as floating
@@ -126,17 +126,14 @@ static void can_init() {
     // Remap the CAN pins
     AFIO->MAPR |= AFIO_MAPR_CAN_REMAP_REMAP2;
 
-    __disable_irq();
     // Enable FIFO full interrupt enable bit
     CAN1->IER |= CAN_IER_FMPIE1;
 
     // Enable interrupt for CAN receive
-    // priority_group = NVIC_GetPriorityGrouping();
-    // priority_encoded = NVIC_EncodePriority(priority_group, 0, 0);
-    // NVIC_SetPriority(CAN1_RX1_IRQn, priority_encoded);
+    uint32_t priority_group = NVIC_GetPriorityGrouping();
+    uint32_t priority_encoded = NVIC_EncodePriority(priority_group, 0, 0);
+    NVIC_SetPriority(CAN1_RX1_IRQn, priority_encoded);
     NVIC_EnableIRQ(CAN1_RX1_IRQn);
-
-    __enable_irq();
 
     // Request CAN initialization
     CAN1->MCR |= CAN_MCR_INRQ;
@@ -199,31 +196,33 @@ void CAN1_RX1_IRQHandler(void) {
     } else {
         TURN_OFF_LED();
     }
-
     CAN1->RF1R |= CAN_RF1R_RFOM1;
 }
 
 void can_config_filter() {
+#define SEL_FILTER_BANK     0
+
     // Initialization mode for filter 1
     CAN1->FMR |= CAN_FMR_FINIT;
 
     // De-activate 0th filter bank
-    CAN1->FA1R &= ~(CAN_FA1R_FACT0);
+    CAN1->FA1R &= ~(1 << SEL_FILTER_BANK);
 
     // Configure 32-bit scale for filter 0
-    CAN1->FS1R |= CAN_FS1R_FSC0;
+    CAN1->FS1R |= (1 << SEL_FILTER_BANK);
 
     // Configure filters
-    CAN1->sFilterRegister[0].FR1 = ((0x6A5 << 5) << 16);
-    CAN1->sFilterRegister[0].FR2 = (0x7FF << 16);
+    CAN1->sFilterRegister[0].FR1 = 0x00000000;
+    CAN1->sFilterRegister[0].FR2 = 0x00000000;
 
     // Filter mode ID mask by default
+    CAN1->FM1R &= ~(1 << SEL_FILTER_BANK);
 
     // Assign FIFO1 for filter-0
-    CAN1->FFA1R |= CAN_FFA1R_FFA0;
+    CAN1->FFA1R |= (1 << SEL_FILTER_BANK);
 
     // Enable filter
-    CAN1->FA1R |= CAN_FA1R_FACT0;
+    CAN1->FA1R |= (1 << SEL_FILTER_BANK);
 
     // Leave init mode
     CAN1->FMR &= ~(CAN_FMR_FINIT);
