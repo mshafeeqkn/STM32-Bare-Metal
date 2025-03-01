@@ -112,6 +112,7 @@ static void can_init() {
     // the default pin may interfer with the USB
     RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
     RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
+    RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
 
     // PB8 - CAN RX and PB9 - CAN TX
     // Remap CAN pins
