@@ -126,6 +126,18 @@ static void can_init() {
     // Remap the CAN pins
     AFIO->MAPR |= AFIO_MAPR_CAN_REMAP_REMAP2;
 
+    __disable_irq();
+    // Enable FIFO full interrupt enable bit
+    CAN1->IER |= CAN_IER_FMPIE1;
+
+    // Enable interrupt for CAN receive
+    // priority_group = NVIC_GetPriorityGrouping();
+    // priority_encoded = NVIC_EncodePriority(priority_group, 0, 0);
+    // NVIC_SetPriority(CAN1_RX1_IRQn, priority_encoded);
+    NVIC_EnableIRQ(CAN1_RX1_IRQn);
+
+    __enable_irq();
+
     // Request CAN initialization
     CAN1->MCR |= CAN_MCR_INRQ;
     while((CAN1->MSR & CAN_MSR_INAK) == 0);
@@ -177,22 +189,58 @@ void can_send_byte(uint8_t byte) {
     }
 }
 
+void CAN1_RX1_IRQHandler(void) {
+    if((CAN1->RF1R & CAN_RF1R_FMP1) == 0) {
+        return;
+    }
+
+    if(((CAN_RDH1R_DATA7 & CAN1->sFIFOMailBox[1].RDHR) >> CAN_RDH0R_DATA7_Pos) == 'A') {
+        TURN_ON_LED();
+    } else {
+        TURN_OFF_LED();
+    }
+
+    CAN1->RF1R |= CAN_RF1R_RFOM1;
+}
+
+void can_config_filter() {
+    // Initialization mode for filter 1
+    CAN1->FMR |= CAN_FMR_FINIT;
+
+    // De-activate 0th filter bank
+    CAN1->FA1R &= ~(CAN_FA1R_FACT0);
+
+    // Configure 32-bit scale for filter 0
+    CAN1->FS1R |= CAN_FS1R_FSC0;
+
+    // Configure filters
+    CAN1->sFilterRegister[0].FR1 = ((0x6A5 << 5) << 16);
+    CAN1->sFilterRegister[0].FR2 = (0x7FF << 16);
+
+    // Filter mode ID mask by default
+
+    // Assign FIFO1 for filter-0
+    CAN1->FFA1R |= CAN_FFA1R_FFA0;
+
+    // Enable filter
+    CAN1->FA1R |= CAN_FA1R_FACT0;
+
+    // Leave init mode
+    CAN1->FMR &= ~(CAN_FMR_FINIT);
+}
+
 /**
   * @brief  The application entry point.
   * @retval int
   */
 int main(void) {
-    uint8_t d = 'A';
     config_sys_clock();
     config_debug_led();
 
     can_init();
     can_start();
+    can_config_filter();
 
     while(1) {
-        d ^= 'B';
-        can_send_byte(d);
-        delay_ms(1000);
-        TOGGLE_LED();
     }
 }

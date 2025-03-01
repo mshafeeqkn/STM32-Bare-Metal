@@ -90,6 +90,7 @@ AS_DEFS =
 
 # C defines
 C_DEFS =  \
+-DCAN_RX \
 -DSTM32F103x6
 
 
