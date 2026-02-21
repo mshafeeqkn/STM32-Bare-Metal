@@ -147,11 +147,32 @@ void configure_timer2() {
     TIM2->CR1 |= TIM_CR1_CEN;    // Start timer
 }
 
+volatile uint16_t time = 0, num_edges = 0, offsets[75];
+volatile uint8_t pkt_start = 0, discard_count = 5;
+
 void EXTI1_IRQHandler(void) {
     if (EXTI->PR & EXTI_PR_PR1) {                   // EXTI1 pending?
-        // edge_flag = GPIOA->IDR & GPIO_IDR_IDR1;     // Read PA1: 1=rising, 0=falling
-        TOGGLE_LED();
         EXTI->PR = EXTI_PR_PR1;                     // Clear flag (write 1)[web:152]
+        if(discard_count > 0) {
+            discard_count--;
+            return;
+        }
+
+        offsets[num_edges] = TIM3->CNT;
+        TIM3->CNT = 0;
+        if(offsets[num_edges] > 8950 && offsets[num_edges] < 9100) {
+            pkt_start = 1;
+        }
+
+        if(pkt_start != 1) {
+            return;
+        }
+
+        if(num_edges > 65) {
+            TIM2->CR1 &= ~(TIM_CR1_CEN);            // Stop timer
+            pkt_start = 0;
+        }
+        num_edges++;
     }
 }
 
@@ -174,6 +195,13 @@ void configure_exti() {
     EXTI->FTSR |= EXTI_FTSR_TR1;    // Falling edge
 }
 
+void configure_timer3() {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;  // Critical!
+
+    TIM3->PSC = 71;             // 72MHz / 72 = 1MHz → 1µs/tick
+    TIM3->ARR = 0xFFFF;
+    TIM3->CR1 |= TIM_CR1_CEN;   // Free run
+}
 
 /**
   * @brief  The application entry point.
@@ -195,11 +223,16 @@ int main(void) {
     // By default the output will be high, turn it off
     TURN_OFF_LED();
 
+    configure_timer3();
     configure_timer2();
 
     while (1) {
         delay(1000);
-        // uart1_send_string("Loop");
+        if(num_edges > 65) {
+            // We got array of delays start with 9ms and 4.5ms
+            // Process the data
+        }
+        while(1);
     }
 }
 
