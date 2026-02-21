@@ -83,15 +83,31 @@ void config_sys_clock() {
 }
 
 volatile uint32_t tick_count = 0;
-const uint32_t delays[] = {65000, 18000, 9000,
-                           1125, 1125, 1125, 3375, 1125, 1125, 1125, 1125, 1125, 3375, 1125, 1125, 1125, 1125, 1125, 3375,
-                           1125, 3375, 1125, 1125, 1125, 3375, 1125, 3375, 1125, 1125, 1125, 3375, 1125, 3375, 1125, 1125,
-                           1125, 1125, 1125, 3375, 1125, 1125, 1125, 1125, 1125, 3375, 1125, 1125, 1125, 1125, 1125, 3375,
-                           1125, 3375, 1125, 1125, 1125, 3375, 1125, 3375, 1125, 1125, 1125, 3375, 1125, 3375, 1125, 1125,
-                           1125
-                          };
+
+
+uint32_t delays[] = {
+    65000, 18000, 9000,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125
+};
+
 const uint32_t num_delays = sizeof(delays) / sizeof(delays[0]);
 volatile uint32_t delay_idx = 0;
+
+
+void encode_nec_data(uint8_t addr, uint8_t data) {
+    uint32_t full_data = (addr << 0) | ((uint8_t)~addr << 8) | (data << 16) | ((uint8_t)~data << 24);
+    uint8_t index = 4;
+    while(full_data) {
+        if(full_data & 0x01)
+            delays[index] = 3375;
+        full_data >>= 1;
+        index += 2;
+    }
+}
 
 void TIM2_IRQHandler(void) {
     if (TIM2->SR & TIM_SR_CC1IF) {
@@ -136,6 +152,7 @@ void configure_timer2() {
   */
 int main(void) {
 	config_sys_clock();
+	encode_nec_data(0x12, 0x44);
 
     // Enable clock for GPIOC and GPIOB peripherals
     RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
