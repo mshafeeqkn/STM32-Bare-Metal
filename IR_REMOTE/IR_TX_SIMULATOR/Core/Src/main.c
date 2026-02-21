@@ -30,6 +30,29 @@ typedef enum {
     TURN_TOGGLE
 } LedState_t;
 
+typedef enum {
+    PKT_WAITING,
+    PKT_STARTED,
+    PKT_RECEIVED,
+    PKT_PROCESSING
+} PktStatus_t;
+
+static uint32_t delays[] = {
+    65000, 18000, 9000,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
+    1125
+};
+const    uint32_t num_delays    = sizeof(delays) / sizeof(delays[0]);
+volatile uint32_t delay_idx     = 1;
+volatile uint16_t edge_index    = 0;
+volatile uint8_t  discard_count = 5;
+volatile PktStatus_t pkt_stat   = PKT_WAITING;
+
+volatile uint16_t offsets[75];
+
 void delay(uint32_t ms) {
     // Simple delay function (not accurate, just for demonstration)
     for (volatile uint32_t i = 0; i < ms * 1000; ++i) {
@@ -45,6 +68,14 @@ void turn_led_on(LedState_t state) {
     } else {
         GPIOC->ODR |= GPIO_ODR_ODR13;
     }
+}
+
+inline void start_ir_simulator() {
+    TIM2->CR1 |= TIM_CR1_CEN;    // Start timer
+}
+
+inline void stop_ir_simulator() {
+    TIM2->CR1 &= ~(TIM_CR1_CEN);            // Stop timer
 }
 
 void config_sys_clock() {
@@ -83,24 +114,9 @@ void config_sys_clock() {
     SystemCoreClockUpdate();
 }
 
-volatile uint32_t tick_count = 0;
 
-
-uint32_t delays[] = {
-    65000, 18000, 9000,
-    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
-    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
-    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
-    1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125, 1125,
-    1125
-};
-
-const uint32_t num_delays = sizeof(delays) / sizeof(delays[0]);
-volatile uint32_t delay_idx = 0;
-
-
-void encode_nec_data(uint8_t addr, uint8_t data) {
-    uint32_t full_data = (addr << 0) | ((uint8_t)~addr << 8) | (data << 16) | ((uint8_t)~data << 24);
+void encode_nec_data(uint8_t addr, uint8_t cmd) {
+    uint32_t full_data = (addr << 0) | ((uint8_t)~addr << 8) | (cmd << 16) | ((uint8_t)~cmd << 24);
     uint8_t index = 4;
     while(full_data) {
         if(full_data & 0x01)
@@ -111,9 +127,11 @@ void encode_nec_data(uint8_t addr, uint8_t data) {
 }
 
 void TIM2_IRQHandler(void) {
+    uint32_t next_delay;
+
     if (TIM2->SR & TIM_SR_CC1IF) {
         TIM2->SR &= ~TIM_SR_CC1IF;  // Clear flag
-        uint32_t next_delay = delays[delay_idx];
+        next_delay = delays[delay_idx];
         TIM2->CCR1 += next_delay;
         delay_idx = (delay_idx + 1) % num_delays;  // Repeat sequence
     }
@@ -140,39 +158,36 @@ void configure_timer2() {
     TIM2->DIER |= TIM_DIER_CC1IE;   // CC1 interrupt enable
 
     TIM2->CNT  = 0;
-    TIM2->CCR1 = delays[0];  // 500ms
+    TIM2->CCR1 = delays[edge_index];  // 500ms
     delay_idx  = 1;
 
-    // TIM2->DIER |= TIM_DIER_UIE;  // Update interrupt enable
-    TIM2->CR1 |= TIM_CR1_CEN;    // Start timer
+    start_ir_simulator();
 }
-
-volatile uint16_t time = 0, num_edges = 0, offsets[75];
-volatile uint8_t pkt_start = 0, discard_count = 5;
 
 void EXTI1_IRQHandler(void) {
     if (EXTI->PR & EXTI_PR_PR1) {                   // EXTI1 pending?
         EXTI->PR = EXTI_PR_PR1;                     // Clear flag (write 1)[web:152]
+        offsets[edge_index] = TIM3->CNT;
+        TIM3->CNT = 0;
+
         if(discard_count > 0) {
             discard_count--;
             return;
         }
 
-        offsets[num_edges] = TIM3->CNT;
-        TIM3->CNT = 0;
-        if(offsets[num_edges] > 8950 && offsets[num_edges] < 9100) {
-            pkt_start = 1;
+        if(offsets[edge_index] > 8950 && offsets[edge_index] < 9100) {
+            pkt_stat = PKT_STARTED;
         }
 
-        if(pkt_start != 1) {
+        if(pkt_stat != PKT_STARTED) {
             return;
         }
 
-        if(num_edges > 65) {
-            TIM2->CR1 &= ~(TIM_CR1_CEN);            // Stop timer
-            pkt_start = 0;
+        if(edge_index > 65) {
+            stop_ir_simulator();
+            pkt_stat = PKT_RECEIVED;
         }
-        num_edges++;
+        edge_index++;
     }
 }
 
@@ -203,13 +218,36 @@ void configure_timer3() {
     TIM3->CR1 |= TIM_CR1_CEN;   // Free run
 }
 
+uint32_t get_nec_data() {
+    uint32_t ret    = 0;
+    uint8_t bit_pos = 0;
+    uint32_t tmp    = 0;
+
+    for(uint8_t i = 3; i <= 65; i += 2, bit_pos++) {
+        if(offsets[i] > 1000) {
+            tmp |= (1 << bit_pos);
+        }
+
+        ret = (tmp << 16) | (tmp >> 16);
+    }
+    return ret;    
+}
+
+uint8_t is_nec_data_valid(uint32_t data) {
+    uint8_t xor = ((data >> 0) & 0xFF) ^ ((data >> 8) & 0xFF) ^
+           ((data >> 0) & 0xFF) ^ ((data >> 8) & 0xFF);
+    return xor == 0;
+}
+
 /**
   * @brief  The application entry point.
   * @retval int
   */
 int main(void) {
     config_sys_clock();
+#ifdef DEBUG_UART
     uart1_setup(UART_TX_ENABLE);
+#endif
     configure_exti();
     encode_nec_data(0x12, 0x44);
 
@@ -228,11 +266,19 @@ int main(void) {
 
     while (1) {
         delay(1000);
-        if(num_edges > 65) {
-            // We got array of delays start with 9ms and 4.5ms
-            // Process the data
+        if(pkt_stat == PKT_RECEIVED) {
+            pkt_stat = PKT_PROCESSING;
+            uint32_t data = get_nec_data();
+            if(is_nec_data_valid(data)) {
+#ifdef DEBUG_UART
+                uart1_send_string("Data: %08X", data);
+#endif
+                if(data == 0xED12BB44) {
+                    TURN_ON_LED();
+                }
+            }
+            pkt_stat = PKT_WAITING;
         }
         while(1);
     }
 }
-

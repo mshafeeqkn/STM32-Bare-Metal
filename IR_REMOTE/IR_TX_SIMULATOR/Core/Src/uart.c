@@ -19,10 +19,11 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include "uart.h"
+#ifdef UART_VARARG
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-
+#endif
 /**
  * @brief Send a byte through the UART1
  *
@@ -39,6 +40,7 @@ void uart1_send_byte(uint8_t ch) {
  * @param format - formatted string
  */
 void uart1_send_string(const char *format, ...) {
+#ifdef UART_VARARG
     va_list args;
     char buffer[128];
     size_t i, len;
@@ -57,6 +59,7 @@ void uart1_send_string(const char *format, ...) {
 
     // Wait until transmission complted
     while((USART1->SR & USART_SR_TC) == 0) {}
+#endif
 }
 
 /**

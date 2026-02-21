@@ -91,7 +91,8 @@ AS_DEFS =
 
 # C defines
 C_DEFS =  \
--DSTM32F103x6
+-DSTM32F103x6 \
+-DDEBUG_UART
 
 
 # AS includes
