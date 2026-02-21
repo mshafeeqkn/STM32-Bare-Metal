@@ -133,11 +133,11 @@ void configure_timer2() {
     NVIC->ISER[0] |= (1 << 28);
 
     // 4. TIM2: 36000 sys ticks = 0.1 ms @72MHz
-    TIM2->PSC  = 35;          // 36 -> 0.1us tick
+    TIM2->PSC  = 35;                // 36 -> 0.1us tick
     TIM2->ARR  = 0xFFFF;
     TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M) | (0x3 << 4);  // OC1M=011 toggle
-    TIM2->CCER |= TIM_CCER_CC1E;   // CH1 enable
-    TIM2->DIER |= TIM_DIER_CC1IE;  // CC1 interrupt enable
+    TIM2->CCER |= TIM_CCER_CC1E;    // CH1 enable
+    TIM2->DIER |= TIM_DIER_CC1IE;   // CC1 interrupt enable
 
     TIM2->CNT  = 0;
     TIM2->CCR1 = delays[0];  // 500ms
@@ -147,6 +147,34 @@ void configure_timer2() {
     TIM2->CR1 |= TIM_CR1_CEN;    // Start timer
 }
 
+void EXTI1_IRQHandler(void) {
+    if (EXTI->PR & EXTI_PR_PR1) {                   // EXTI1 pending?
+        // edge_flag = GPIOA->IDR & GPIO_IDR_IDR1;     // Read PA1: 1=rising, 0=falling
+        TOGGLE_LED();
+        EXTI->PR = EXTI_PR_PR1;                     // Clear flag (write 1)[web:152]
+    }
+}
+
+void configure_exti() {
+    // 1. Clocks
+    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_AFIOEN;
+
+    // 2. NVIC: EXTI1_IRQn=7
+    NVIC->IP[7] = (0 << 4);         // Priority 0
+    NVIC->ISER[0] |= (1 << 7);      // Enable IRQ 7
+
+    // 3. PA1: Input floating (or pull-up/down as needed)
+    GPIOA->CRL &= ~GPIO_CRL_MODE1;  // Input mode (00)
+    GPIOA->CRL |= GPIO_CRL_CNF1_0;  // Floating input (01)
+
+    // 4. EXTI1: Both edges
+    AFIO->EXTICR[0] &= ~(0xF << 4); // EXTI1=PA1 (0000)[web:152]
+    EXTI->IMR |= EXTI_IMR_MR1;      // Unmask EXTI1
+    EXTI->RTSR |= EXTI_RTSR_TR1;    // Rising edge
+    EXTI->FTSR |= EXTI_FTSR_TR1;    // Falling edge
+}
+
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -154,6 +182,7 @@ void configure_timer2() {
 int main(void) {
     config_sys_clock();
     uart1_setup(UART_TX_ENABLE);
+    configure_exti();
     encode_nec_data(0x12, 0x44);
 
     // Enable clock for GPIOC and GPIOB peripherals
@@ -170,7 +199,7 @@ int main(void) {
 
     while (1) {
         delay(1000);
-        uart1_send_string("Loop");
+        // uart1_send_string("Loop");
     }
 }
 
