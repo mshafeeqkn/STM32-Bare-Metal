@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "uart.h"
 
 #define TURN_ON_LED()            turn_led_on(TURN_ON)
 #define TURN_OFF_LED()           turn_led_on(TURN_OFF)
@@ -132,7 +133,7 @@ void configure_timer2() {
     NVIC->ISER[0] |= (1 << 28);
 
     // 4. TIM2: 36000 sys ticks = 0.1 ms @72MHz
-    TIM2->PSC  = 35;          // 72 -> 1us tick
+    TIM2->PSC  = 35;          // 36 -> 0.1us tick
     TIM2->ARR  = 0xFFFF;
     TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M) | (0x3 << 4);  // OC1M=011 toggle
     TIM2->CCER |= TIM_CCER_CC1E;   // CH1 enable
@@ -151,8 +152,9 @@ void configure_timer2() {
   * @retval int
   */
 int main(void) {
-	config_sys_clock();
-	encode_nec_data(0x12, 0x44);
+    config_sys_clock();
+    uart1_setup(UART_TX_ENABLE);
+    encode_nec_data(0x12, 0x44);
 
     // Enable clock for GPIOC and GPIOB peripherals
     RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
@@ -167,8 +169,8 @@ int main(void) {
     configure_timer2();
 
     while (1) {
-        // TOGGLE_LED();
         delay(1000);
+        uart1_send_string("Loop");
     }
 }
 
